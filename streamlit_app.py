@@ -12,6 +12,7 @@ from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import List, Dict, Optional, Tuple
 import datetime, uuid, json, math, io, struct, base64, time
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 # ======================================================================
 # S1 - 常量与配置
@@ -576,29 +577,66 @@ def build_feature_vector(data: np.ndarray) -> np.ndarray:
 
 
 # ======================================================================
-# S5 - AI推理引擎
+# S5 - AI推理引擎 (RandomForest + 规则引擎 + 混合模式)
 # ======================================================================
 
-def generate_simulated_spectrum(wavelengths: np.ndarray, pesticide: str = 'none',
-                                concentration: float = 0.0) -> np.ndarray:
-    baseline = 500 + 200 * np.sin(wavelengths / 200)
-    noise = np.random.normal(0, 30, len(wavelengths))
-    spectrum = baseline + noise
-    if pesticide != 'none' and pesticide in PESTICIDE_PEAKS:
-        for pw, pi in PESTICIDE_PEAKS[pesticide]:
-            sigma = 20 + np.random.uniform(-5, 5)
-            peak = concentration * pi * 1000 * np.exp(
-                -((wavelengths - pw) ** 2) / (2 * sigma ** 2))
-            spectrum += peak
-    spectrum += np.random.normal(0, 20, len(spectrum))
-    spectrum += np.random.uniform(-50, 50)
-    return spectrum
+def _generate_training_spectra() -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Internal: generate synthetic training data for RF models. NOT user-facing."""
+    rng = np.random.RandomState(42)
+    samples_per_class = 180
+    X_features = []
+    y_class = []
+    y_conc = []
+    wavelengths = STANDARD_WAVELENGTHS.copy()
+    for class_idx, pest_en in enumerate(PESTICIDE_CLASSES):
+        for _ in range(samples_per_class):
+            # generate synthetic spectrum
+            baseline = 500 + 200 * np.sin(wavelengths / 200)
+            noise = rng.normal(0, 30, len(wavelengths))
+            spectrum = baseline + noise
+            if pest_en != 'none' and pest_en in PESTICIDE_PEAKS:
+                conc_val = rng.uniform(0.01, 2.0) * MRL_LIMITS.get(pest_en, 0.1)
+                for pw, pi in PESTICIDE_PEAKS[pest_en]:
+                    sigma = 20 + rng.uniform(-5, 5)
+                    peak = conc_val * pi * 1000 * np.exp(
+                        -((wavelengths - pw) ** 2) / (2 * sigma ** 2))
+                    spectrum += peak
+            else:
+                conc_val = 0.0
+            spectrum += rng.normal(0, 20, len(spectrum))
+            spectrum += rng.uniform(-50, 50)
+            # preprocess
+            _, processed = preprocess_spectrum(wavelengths, spectrum)
+            # extract features
+            features = build_feature_vector(processed)
+            X_features.append(features)
+            y_class.append(class_idx)
+            # concentration vector (10 pesticides, excluding 'none')
+            conc_vec = np.zeros(10)
+            if class_idx > 0:
+                conc_vec[class_idx - 1] = conc_val
+            y_conc.append(conc_vec)
+    return np.array(X_features), np.array(y_class), np.array(y_conc)
+
+
+@st.cache_resource
+def _train_rf_models():
+    """Train and cache RandomForest classifier + regressor. Runs once per server."""
+    X, y_cls, y_conc = _generate_training_spectra()
+    clf = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+    clf.fit(X, y_cls)
+    reg = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+    reg.fit(X, y_conc)
+    return clf, reg
 
 
 def rule_engine_detect(wavelengths: np.ndarray, intensities: np.ndarray,
                        features: np.ndarray) -> Tuple[List[DetectedPesticide], float]:
+    """Rule engine: spectral peak matching with data-driven confidence."""
     norm_int = minmax_normalize(intensities)
     detected = []
+    match_ratios = []
+    intensity_scores = []
     all_peaks = dict(PESTICIDE_PEAKS)
     all_peaks.pop('none', None)
     for pest_en, peaks in all_peaks.items():
@@ -615,107 +653,65 @@ def rule_engine_detect(wavelengths: np.ndarray, intensities: np.ndarray,
                 match_count += 1
         if match_count >= len(peaks) * 0.5:
             avg_score = match_score / match_count
-            conc = avg_score * MRL_LIMITS.get(pest_en, 0.1) * 2
+            ratio = match_count / len(peaks)
+            match_ratios.append(ratio)
+            intensity_scores.append(avg_score)
+            conc = avg_score * MRL_LIMITS.get(pest_en, 0.1)
             detected.append(DetectedPesticide(
                 name=PESTICIDE_CN.get(pest_en, pest_en),
                 pesticide_type=PESTICIDE_TYPES.get(pest_en, '未知'),
                 concentration=round(conc, 4),
                 max_residue_limit=MRL_LIMITS.get(pest_en, 0.1),
             ))
-    # confidence
-    conf = 0.7
-    std_f = features[1] if len(features) > 1 else 0.0
-    peak_count = features[16 + 7] if len(features) > 23 else 0.0  # approximate
-    if 0.1 < std_f < 0.5:
-        conf += 0.1
-    if 3 <= peak_count <= 10:
-        conf += 0.1
-    if not detected:
-        conf += 0.05
-    elif len(detected) <= 3:
-        conf += 0.05
-    return detected, min(conf, 1.0)
+    # data-driven confidence
+    if detected:
+        avg_match = float(np.mean(match_ratios))
+        avg_intensity = float(np.mean(intensity_scores))
+        det_factor = min(1.0, len(detected) / 3.0)
+        conf = 0.4 * avg_match + 0.4 * avg_intensity + 0.2 * det_factor
+    else:
+        spectral_quality = float(np.std(norm_int))
+        conf = 0.5 + 0.3 * min(1.0, spectral_quality / 0.3)
+    return detected, float(np.clip(conf, 0.3, 0.95))
 
 
-def numpy_cnn_classify(spectral_256: np.ndarray, features_64: np.ndarray) -> Tuple[np.ndarray, int]:
-    """Simplified CNN-like classification using numpy (deterministic rule-enhanced)"""
-    np.random.seed(hash(tuple(spectral_256[:10].tolist())) % (2**31))
-    norm = minmax_normalize(spectral_256)
-    scores = np.zeros(len(PESTICIDE_CLASSES))
-    scores[0] = 0.3  # base score for 'none'
-    for idx, pest_en in enumerate(PESTICIDE_CLASSES[1:], 1):
-        peaks = PESTICIDE_PEAKS.get(pest_en, [])
-        s = 0.0
-        for pw, pi in peaks:
-            wl_idx = int(np.clip((pw - 200) / (1000 - 200) * 255, 0, 255))
-            region = norm[max(0, wl_idx - 3):min(256, wl_idx + 4)]
-            if len(region) > 0:
-                s += float(np.max(region)) * pi
-        scores[idx] = s / (len(peaks) + 1e-6)
-    # feature contribution
-    feat_energy = features_64[12] if len(features_64) > 12 else 0.0
-    feat_std = features_64[1] if len(features_64) > 1 else 0.0
-    scores *= (1 + 0.01 * abs(feat_std))
-    # softmax
-    scores = scores - np.max(scores)
-    exp_s = np.exp(scores)
-    probs = exp_s / np.sum(exp_s)
-    return probs, int(np.argmax(probs))
-
-
-def numpy_cnn_regress(spectral_256: np.ndarray, features_64: np.ndarray,
-                      class_idx: int) -> float:
-    """Simplified concentration regression using numpy"""
-    if class_idx == 0:
-        return 0.0
-    pest_en = PESTICIDE_CLASSES[class_idx]
-    peaks = PESTICIDE_PEAKS.get(pest_en, [])
-    norm = minmax_normalize(spectral_256)
-    peak_intensities = []
-    for pw, _ in peaks:
-        wl_idx = int(np.clip((pw - 200) / (1000 - 200) * 255, 0, 255))
-        region = norm[max(0, wl_idx - 5):min(256, wl_idx + 6)]
-        if len(region) > 0:
-            peak_intensities.append(float(np.max(region)))
-    if not peak_intensities:
-        return 0.0
-    avg_intensity = np.mean(peak_intensities)
-    mrl = MRL_LIMITS.get(pest_en, 0.1)
-    concentration = avg_intensity * mrl * 3.0
-    noise = np.random.normal(0, 0.005)
-    return max(0, round(concentration + noise, 4))
-
-
-def deep_learning_analyze(spectral_256: np.ndarray, features_64: np.ndarray) -> Tuple[List[DetectedPesticide], float]:
-    probs, class_idx = numpy_cnn_classify(spectral_256, features_64)
-    confidence = float(probs[class_idx])
+def random_forest_analyze(spectral_256: np.ndarray,
+                          features_64: np.ndarray) -> Tuple[List[DetectedPesticide], float]:
+    """RandomForest-based classification + regression using sklearn."""
+    clf, reg = _train_rf_models()
+    X = features_64.reshape(1, -1)
+    probs = clf.predict_proba(X)[0]
+    confidence = float(np.max(probs))
+    conc_pred = reg.predict(X)[0]  # shape: (10,)
     detected = []
     threshold = 0.15
     for idx in range(1, len(PESTICIDE_CLASSES)):
         if probs[idx] > threshold:
             pest_en = PESTICIDE_CLASSES[idx]
-            conc = numpy_cnn_regress(spectral_256, features_64, idx)
+            conc = max(0.0, float(conc_pred[idx - 1]))
             if conc > 0.001:
                 detected.append(DetectedPesticide(
                     name=PESTICIDE_CN.get(pest_en, pest_en),
                     pesticide_type=PESTICIDE_TYPES.get(pest_en, '未知'),
-                    concentration=conc,
+                    concentration=round(conc, 4),
                     max_residue_limit=MRL_LIMITS.get(pest_en, 0.1),
                 ))
-    return detected, min(confidence + 0.1, 0.99)
+    return detected, confidence
 
 
 def hybrid_analyze(wavelengths: np.ndarray, spectral_256: np.ndarray,
                    features_64: np.ndarray) -> Tuple[List[DetectedPesticide], float]:
-    dl_pests, dl_conf = deep_learning_analyze(spectral_256, features_64)
+    """Adaptive fusion of RandomForest + Rule Engine with confidence-based weighting."""
+    rf_pests, rf_conf = random_forest_analyze(spectral_256, features_64)
     re_pests, re_conf = rule_engine_detect(wavelengths, spectral_256, features_64)
     merged = {}
-    for p in dl_pests:
+    for p in rf_pests:
         merged[p.name] = p
     for p in re_pests:
         if p.name in merged:
             ex = merged[p.name]
-            fused_conc = (ex.concentration * dl_conf + p.concentration * re_conf) / (dl_conf + re_conf)
+            total_conf = rf_conf + re_conf + 1e-10
+            fused_conc = (ex.concentration * rf_conf + p.concentration * re_conf) / total_conf
             merged[p.name] = DetectedPesticide(
                 name=p.name, pesticide_type=p.pesticide_type,
                 concentration=round(fused_conc, 4),
@@ -723,10 +719,13 @@ def hybrid_analyze(wavelengths: np.ndarray, spectral_256: np.ndarray,
         else:
             merged[p.name] = DetectedPesticide(
                 name=p.name, pesticide_type=p.pesticide_type,
-                concentration=round(p.concentration * 0.8, 4),
+                concentration=round(p.concentration * re_conf, 4),
                 max_residue_limit=p.max_residue_limit)
-    fused_conf = min(dl_conf * 0.7 + re_conf * 0.3, 1.0)
-    return list(merged.values()), fused_conf
+    # adaptive weighting: higher confidence gets quadratically more weight
+    w_rf = rf_conf ** 2
+    w_re = re_conf ** 2
+    fused_conf = (w_rf * rf_conf + w_re * re_conf) / (w_rf + w_re + 1e-10)
+    return list(merged.values()), float(np.clip(fused_conf, 0.0, 1.0))
 
 
 def determine_risk_level(pesticides: List[DetectedPesticide]) -> RiskLevel:
@@ -756,14 +755,18 @@ def run_full_analysis(wavelengths: np.ndarray, raw_intensities: np.ndarray,
                                         baseline_method, denoise_method,
                                         norm_method, filter_window)
     features = build_feature_vector(processed)
-    if analysis_mode == 'deep_learning':
-        pests, conf = deep_learning_analyze(processed, features)
+    if analysis_mode == 'random_forest':
+        pests, conf = random_forest_analyze(processed, features)
     elif analysis_mode == 'rule_engine':
         pests, conf = rule_engine_detect(wl, processed, features)
     else:
         pests, conf = hybrid_analyze(wl, processed, features)
     risk = determine_risk_level(pests)
-    explain = compute_explainability(wl, processed, features, conf)
+    # pass RF models to explainability when available
+    rf_clf, rf_reg = None, None
+    if analysis_mode in ('random_forest', 'hybrid'):
+        rf_clf, rf_reg = _train_rf_models()
+    explain = compute_explainability(wl, processed, features, conf, rf_clf=rf_clf)
     result = DetectionResult(
         id=str(uuid.uuid4())[:8],
         timestamp=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -779,28 +782,76 @@ def run_full_analysis(wavelengths: np.ndarray, raw_intensities: np.ndarray,
 
 
 # ======================================================================
-# S6 - 可解释性引擎
+# S6 - 可解释性引擎 (确定性 SHAP + RF特征重要性 + 统计置信区间)
 # ======================================================================
 
 def compute_explainability(wavelengths: np.ndarray, processed: np.ndarray,
-                           features: np.ndarray, confidence: float) -> ExplainabilityResult:
+                           features: np.ndarray, confidence: float,
+                           rf_clf=None) -> ExplainabilityResult:
     n = len(processed)
-    # SHAP approximation
     shap_values = np.zeros(n)
-    total_energy = np.sum(np.abs(processed)) + 1e-10
-    for i in range(n):
-        local_var = 0.0
-        if i > 0:
-            local_var += abs(processed[i] - processed[i - 1])
-        if i < n - 1:
-            local_var += abs(processed[i] - processed[i + 1])
-        rel_intensity = abs(processed[i]) / total_energy
-        shap_values[i] = local_var * 0.01 * rel_intensity * np.random.uniform(-1, 1)
+
+    if rf_clf is not None:
+        # Perturbation-based SHAP: 16 spectral segments
+        X_base = features.reshape(1, -1)
+        base_probs = rf_clf.predict_proba(X_base)[0]
+        best_class = int(np.argmax(base_probs))
+        base_prob = float(base_probs[best_class])
+        segment_size = 16
+        num_segments = n // segment_size
+        segment_contributions = np.zeros(num_segments)
+        for seg in range(num_segments):
+            start = seg * segment_size
+            end = min(start + segment_size, n)
+            perturbed = processed.copy()
+            seg_mean = float(np.mean(processed))
+            perturbed[start:end] = seg_mean  # zero out segment
+            perturbed_features = build_feature_vector(perturbed)
+            perturbed_probs = rf_clf.predict_proba(perturbed_features.reshape(1, -1))[0]
+            segment_contributions[seg] = base_prob - float(perturbed_probs[best_class])
+        # distribute to individual wavelength points by local gradient
+        for seg in range(num_segments):
+            start = seg * segment_size
+            end = min(start + segment_size, n)
+            seg_len = end - start
+            gradients = np.zeros(seg_len)
+            for i in range(seg_len):
+                idx = start + i
+                if idx > 0 and idx < n - 1:
+                    gradients[i] = abs(processed[idx + 1] - processed[idx - 1]) / 2
+                elif idx == 0 and n > 1:
+                    gradients[i] = abs(processed[1] - processed[0])
+                elif idx == n - 1 and n > 1:
+                    gradients[i] = abs(processed[-1] - processed[-2])
+            total_grad = np.sum(gradients) + 1e-10
+            for i in range(seg_len):
+                shap_values[start + i] = segment_contributions[seg] * gradients[i] / total_grad
+    else:
+        # Deterministic SHAP without RF: local variance * gradient sign
+        total_energy = np.sum(np.abs(processed)) + 1e-10
+        for i in range(n):
+            local_var = 0.0
+            if i > 0:
+                local_var += abs(processed[i] - processed[i - 1])
+            if i < n - 1:
+                local_var += abs(processed[i] - processed[i + 1])
+            rel_intensity = abs(processed[i]) / total_energy
+            # deterministic sign from local gradient instead of random
+            if i > 0 and i < n - 1:
+                grad_sign = np.sign(processed[i + 1] - processed[i - 1])
+            elif i == 0 and n > 1:
+                grad_sign = np.sign(processed[1] - processed[0])
+            else:
+                grad_sign = 1.0
+            if grad_sign == 0:
+                grad_sign = 1.0
+            shap_values[i] = local_var * 0.01 * rel_intensity * grad_sign
+
     # critical wavelengths
     critical_wls = []
     for i in range(2, n - 2):
         neighbors = [abs(shap_values[j]) for j in range(max(0, i - 5), min(n, i + 6)) if j != i]
-        if abs(shap_values[i]) > max(neighbors) * 1.2 and abs(shap_values[i]) > 0.0001:
+        if neighbors and abs(shap_values[i]) > max(neighbors) * 1.2 and abs(shap_values[i]) > 0.0001:
             wl_val = float(wavelengths[i]) if i < len(wavelengths) else 200 + i * 3.125
             meaning = get_wavelength_meaning(wl_val)
             critical_wls.append({
@@ -811,7 +862,8 @@ def compute_explainability(wavelengths: np.ndarray, processed: np.ndarray,
             })
     critical_wls.sort(key=lambda x: abs(x['contribution']), reverse=True)
     critical_wls = critical_wls[:10]
-    # feature importance - aggregate to spectral bands
+
+    # spectral band aggregation
     bands = {}
     band_ranges = [(200, 300), (300, 400), (400, 500), (500, 600),
                    (600, 700), (700, 800), (800, 900), (900, 1000)]
@@ -825,16 +877,32 @@ def compute_explainability(wavelengths: np.ndarray, processed: np.ndarray,
     total_band = sum(bands.values())
     if total_band > 0:
         bands = {k: round(v / total_band, 4) for k, v in bands.items()}
-    # feature importance
+
+    # feature importance - from RF Gini importance or deterministic fallback
     feat_imp = {}
     feat_names = ['mean', 'std', 'variance', 'min', 'max', 'range', 'median',
                   'q1', 'q3', 'iqr', 'skewness', 'kurtosis', 'energy', 'entropy', 'rms', 'cv']
-    for i, name in enumerate(feat_names):
-        if i < len(features):
-            feat_imp[name] = round(float(features[i]) * 0.001 * np.random.uniform(0.5, 1.5), 6)
-    # confidence interval
-    std_est = (1 - confidence) * 0.5
-    ci = (max(0, confidence - 1.96 * std_est), min(1, confidence + 1.96 * std_est))
+    if rf_clf is not None:
+        rf_importances = rf_clf.feature_importances_  # Gini importance from ensemble
+        for i, name in enumerate(feat_names):
+            if i < len(rf_importances):
+                feat_imp[name] = round(float(rf_importances[i]), 6)
+    else:
+        for i, name in enumerate(feat_names):
+            if i < len(features):
+                feat_imp[name] = round(abs(float(features[i])) * 0.001, 6)
+
+    # confidence interval - from RF tree variance or approximate
+    if rf_clf is not None:
+        X_ci = features.reshape(1, -1)
+        tree_preds = np.array([tree.predict_proba(X_ci)[0] for tree in rf_clf.estimators_])
+        best_class = int(np.argmax(rf_clf.predict_proba(X_ci)[0]))
+        std_val = float(np.std(tree_preds[:, best_class]))
+        ci = (max(0.0, confidence - 1.96 * std_val), min(1.0, confidence + 1.96 * std_val))
+    else:
+        std_val = 0.1 * (1 - confidence)
+        ci = (max(0.0, confidence - 1.96 * std_val), min(1.0, confidence + 1.96 * std_val))
+
     return ExplainabilityResult(
         shap_values=shap_values.tolist(),
         feature_importance=feat_imp,
@@ -1296,21 +1364,10 @@ def page_detection():
 
     # Step 2: Data source
     st.subheader('Step 2: 光谱数据来源')
-    data_mode = st.radio('选择数据来源', ['模拟演示', '文件导入', '手动输入'], horizontal=True)
+    data_mode = st.radio('选择数据来源', ['文件导入', '手动输入'], horizontal=True)
     wavelengths = raw_intensities = None
 
-    if data_mode == '模拟演示':
-        c1, c2 = st.columns(2)
-        with c1:
-            sim_pest_cn = st.selectbox('模拟农药类型',
-                                       ['无农药'] + [PESTICIDE_CN[k] for k in PESTICIDE_CLASSES[1:]])
-            sim_pest_en = [k for k, v in PESTICIDE_CN.items() if v == sim_pest_cn][0]
-        with c2:
-            sim_conc = st.slider('模拟浓度 (mg/kg)', 0.0, 2.0, 0.15, 0.01)
-        wavelengths = STANDARD_WAVELENGTHS.copy()
-        raw_intensities = generate_simulated_spectrum(wavelengths, sim_pest_en, sim_conc)
-
-    elif data_mode == '文件导入':
+    if data_mode == '文件导入':
         uploaded = st.file_uploader('上传光谱文件', type=['csv', 'txt', 'json', 'dx', 'jdx', 'jcamp'])
         if uploaded:
             try:
@@ -1345,9 +1402,10 @@ def page_detection():
                                          index=['MinMax', 'ZScore', 'L1', 'L2', 'SNV'].index(settings['norm_method']))
             with pc4:
                 fw = st.slider('滤波窗口', 3, 21, settings['filter_window'], 2)
-            analysis_mode = st.selectbox('分析模式', ['hybrid', 'deep_learning', 'rule_engine'],
-                                         format_func=lambda x: {'hybrid': '混合模式(推荐)', 'deep_learning': '深度学习', 'rule_engine': '规则引擎'}[x],
-                                         index=['hybrid', 'deep_learning', 'rule_engine'].index(settings['analysis_mode']))
+            analysis_mode = st.selectbox('分析模式', ['hybrid', 'random_forest', 'rule_engine'],
+                                         format_func=lambda x: {'hybrid': '混合模式(推荐)', 'random_forest': '随机森林', 'rule_engine': '规则引擎'}[x],
+                                         index=['hybrid', 'random_forest', 'rule_engine'].index(
+                                             settings['analysis_mode'] if settings['analysis_mode'] != 'deep_learning' else 'random_forest'))
         # Step 4: Spectral preview
         st.subheader('Step 4: 光谱预览')
         wl_proc, proc_data = preprocess_spectrum(wavelengths, raw_intensities,
@@ -1375,20 +1433,45 @@ def page_detection():
                 st.warning('请输入样品名称')
             else:
                 progress = st.progress(0, text='初始化分析引擎...')
-                time.sleep(0.3)
-                progress.progress(20, text='光谱预处理...')
-                time.sleep(0.3)
-                progress.progress(50, text='特征提取...')
-                time.sleep(0.3)
-                progress.progress(70, text='AI模型推理...')
-                time.sleep(0.3)
+                # Step 1: Preprocessing (actual work)
+                progress.progress(10, text='光谱预处理...')
+                final_wl, final_proc = preprocess_spectrum(
+                    wavelengths, raw_intensities, bl_method, dn_method, nm_method, fw)
+                # Step 2: Feature extraction (actual work)
+                progress.progress(30, text='特征提取...')
+                feat = build_feature_vector(final_proc)
+                # Step 3: Model inference (actual work)
+                mode_label = {'hybrid': '混合模式', 'random_forest': '随机森林', 'rule_engine': '规则引擎'}.get(analysis_mode, 'AI')
+                progress.progress(50, text=f'{mode_label}推理...')
+                if analysis_mode == 'random_forest':
+                    pests, conf = random_forest_analyze(final_proc, feat)
+                elif analysis_mode == 'rule_engine':
+                    pests, conf = rule_engine_detect(final_wl, final_proc, feat)
+                else:
+                    pests, conf = hybrid_analyze(final_wl, final_proc, feat)
+                # Step 4: Risk assessment (actual work)
+                progress.progress(70, text='风险评估...')
+                risk = determine_risk_level(pests)
+                # Step 5: Explainability (actual work)
                 progress.progress(85, text='可解释性分析...')
-                result, final_wl, final_proc, explain = run_full_analysis(
-                    wavelengths, raw_intensities, sample_name, sample_category,
-                    bl_method, dn_method, nm_method, fw, analysis_mode,
-                    notes=f'{sample_source} {notes}'.strip())
+                rf_clf_exp = None
+                if analysis_mode in ('random_forest', 'hybrid'):
+                    rf_clf_exp, _ = _train_rf_models()
+                explain = compute_explainability(final_wl, final_proc, feat, conf, rf_clf=rf_clf_exp)
+                # Step 6: Build result
+                progress.progress(95, text='生成检测报告...')
+                result = DetectionResult(
+                    id=str(uuid.uuid4())[:8],
+                    timestamp=datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    sample_name=sample_name,
+                    sample_category=sample_category,
+                    risk_level=risk.value,
+                    confidence=round(conf, 4),
+                    detected_pesticides=[p.to_dict() for p in pests],
+                    notes=f'{sample_source} {notes}'.strip(),
+                    explainability=explain.to_dict(),
+                )
                 progress.progress(100, text='分析完成!')
-                time.sleep(0.2)
                 save_result(result)
                 st.session_state['last_result'] = result.to_dict()
                 st.session_state['last_explain'] = explain.to_dict()
@@ -1749,10 +1832,11 @@ def page_settings():
     settings = st.session_state.settings
 
     st.subheader('分析模式')
+    _cur_mode = settings['analysis_mode'] if settings['analysis_mode'] != 'deep_learning' else 'random_forest'
     mode = st.selectbox('默认分析模式',
-                         ['hybrid', 'deep_learning', 'rule_engine'],
-                         format_func=lambda x: {'hybrid': '混合模式(推荐)', 'deep_learning': '深度学习', 'rule_engine': '规则引擎'}[x],
-                         index=['hybrid', 'deep_learning', 'rule_engine'].index(settings['analysis_mode']))
+                         ['hybrid', 'random_forest', 'rule_engine'],
+                         format_func=lambda x: {'hybrid': '混合模式(推荐)', 'random_forest': '随机森林', 'rule_engine': '规则引擎'}[x],
+                         index=['hybrid', 'random_forest', 'rule_engine'].index(_cur_mode))
     settings['analysis_mode'] = mode
 
     st.subheader('预处理默认参数')
@@ -1782,13 +1866,13 @@ def page_settings():
 - 🔬 基于AI的多种农药残留检测（11种农药）
 - 📊 光谱数据预处理（ALS基线校正、SG/高斯滤波、多种标准化）
 - 🧮 64维特征工程（统计/导数/峰值/小波/频域/纹理）
-- 🤖 AI推理引擎（深度学习CNN + 规则引擎 + 混合模式）
-- 📈 SHAP可解释性分析
+- 🤖 AI推理引擎（随机森林 + 规则引擎 + 混合模式）
+- 📈 SHAP可解释性分析（扰动式近似 + RF特征重要性）
 - 📄 PDF检测报告生成
 - 📥 光谱文件导入（CSV/JSON/JCAMP-DX）
 - 💾 数据导入导出（JSON/CSV）
 
-**技术栈：** Streamlit + NumPy + Plotly + FPDF2  
+**技术栈：** Streamlit + NumPy + Plotly + FPDF2 + scikit-learn  
 **参考标准：** GB 2763《食品安全国家标准 食品中农药最大残留限量》
 
 ---
