@@ -1,0 +1,4 @@
+# TensorFlow Lite Model Placeholder
+# This is a placeholder file for pesticide_classifier.tflite
+# When the actual model is available, it will be used automatically
+# In the meantime, the app will use the rule-based engine

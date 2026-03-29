@@ -1,0 +1,25 @@
+{
+  "pesticide_classifier": {
+    "filename": "pesticide_classifier.tflite",
+    "description": "Multi-class pesticide classification model",
+    "input_shape": [1, 256],
+    "output_shape": [1, 5],
+    "input_type": "float32",
+    "output_type": "float32",
+    "classes": ["clean", "organophosphate", "carbamate", "pyrethroid", "neonicotinoid"],
+    "version": "1.0.0",
+    "status": "placeholder"
+  },
+  "concentration_regressor": {
+    "filename": "concentration_regressor.tflite",
+    "description": "Pesticide concentration regression model",
+    "input_shape": [1, 256],
+    "output_shape": [1, 1],
+    "input_type": "float32",
+    "output_type": "float32",
+    "unit": "mg/kg",
+    "version": "1.0.0",
+    "status": "placeholder"
+  },
+  "generation_instructions": "Run 'python ml_training/generate_tflite.py' to generate actual models"
+}
