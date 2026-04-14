@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw GUI - Discord Bot 管理工具</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <h1>🦞 OpenClaw GUI</h1>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="status-bar">
+                <span id="openclaw-status" class="status-badge status-warning">
+                    <span class="status-dot"></span>
+                    OpenClaw: 未检测
+                </span>
+                <span id="discord-status" class="status-badge status-warning">
+                    <span class="status-dot"></span>
+                    Discord: 未连接
+                </span>
+            </div>
+        </header>
+
+        <nav class="sidebar">
+            <button class="nav-btn active" data-page="openclaw">
+                <span class="nav-icon">⚙️</span>
+                OpenClaw 配置
+            </button>
+            <button class="nav-btn" data-page="discord">
+                <span class="nav-icon">🤖</span>
+                Discord Bot
+            </button>
+            <button class="nav-btn" data-page="tools">
+                <span class="nav-icon">🛠️</span>
+                工具
+            </button>
+            <button class="nav-btn" data-page="about">
+                <span class="nav-icon">ℹ️</span>
+                关于
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <div id="page-openclaw" class="page active">
+                <h2>OpenClaw 配置</h2>
+                <div class="card">
+                    <h3>状态检查</h3>
+                    <div class="form-group">
+                        <button id="btn-check-openclaw" class="btn btn-primary">
+                            检查 OpenClaw
+                        </button>
+                    </div>
+                    <div id="openclaw-info" class="info-box hidden">
+                        <h4>OpenClaw 信息</h4>
+                        <div id="openclaw-details"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>快速操作</h3>
+                    <div class="button-group">
+                        <button id="btn-doctor" class="btn btn-secondary">
+                            运行诊断 (doctor)
+                        </button>
+                        <button id="btn-onboard" class="btn btn-secondary">
+                            配置向导 (onboard)
+                        </button>
+                        <button id="btn-dashboard" class="btn btn-secondary">
+                            打开面板
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>命令输出</h3>
+                    <div class="terminal">
+                        <pre id="terminal-output">等待命令...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-discord" class="page">
+                <h2>Discord Bot 管理</h2>
+                <div class="card">
+                    <h3>Bot 配置</h3>
+                    <div class="form-group">
+                        <label for="discord-token">Bot Token</label>
+                        <input type="password" id="discord-token" placeholder="请输入 Discord Bot Token">
+                    </div>
+                    <div class="form-group">
+                        <label for="discord-client-id">Client ID</label>
+                        <input type="text" id="discord-client-id" placeholder="请输入 Client ID">
+                    </div>
+                    <div class="form-group">
+                        <button id="btn-save-discord" class="btn btn-primary">
+                            保存配置
+                        </button>
+                        <button id="btn-test-discord" class="btn btn-secondary">
+                            测试连接
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>快捷链接</h3>
+                    <div class="button-group">
+                        <button id="btn-dev-portal" class="btn btn-link">
+                            🔗 打开开发者门户
+                        </button>
+                        <button id="btn-view-bot" class="btn btn-link">
+                            📁 查看 Bot 项目
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-tools" class="page">
+                <h2>工具</h2>
+                <div class="card">
+                    <h3>实用工具</h3>
+                    <div class="tools-grid">
+                        <div class="tool-item">
+                            <h4>📝 配置管理</h4>
+                            <p>查看和编辑应用配置</p>
+                            <button id="btn-view-config" class="btn btn-small">
+                                查看配置
+                            </button>
+                        </div>
+                        <div class="tool-item">
+                            <h4>🗑️ 重置配置</h4>
+                            <p>清除所有保存的配置</p>
+                            <button id="btn-reset-config" class="btn btn-small btn-danger">
+                                重置配置
+                            </button>
+                        </div>
+                        <div class="tool-item">
+                            <h4>📂 打开项目</h4>
+                            <p>在文件管理器中打开</p>
+                            <button id="btn-open-project" class="btn btn-small">
+                                打开目录
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-about" class="page">
+                <h2>关于</h2>
+                <div class="card about-card">
+                    <div class="about-icon">🦞</div>
+                    <h3>OpenClaw GUI</h3>
+                    <p class="about-version">版本 1.0.0</p>
+                    <p class="about-desc">
+                        一个图形界面的 OpenClaw 和 Discord Bot 管理工具
+                    </p>
+                    <div class="about-links">
+                        <a href="https://docs.openclaw.ai/" class="link" id="link-docs">
+                            📖 官方文档
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,433 @@
+{
+  "pesticide": "苄·二氣",
+  "spectrum_data": [
+    {
+      "wavelength": 246.0,
+      "absorbance": 4.223
+    },
+    {
+      "wavelength": 246.0,
+      "absorbance": 3.396
+    },
+    {
+      "wavelength": 246.0,
+      "absorbance": 3.39
+    },
+    {
+      "wavelength": 246.0,
+      "absorbance": 2.564
+    },
+    {
+      "wavelength": 246.0,
+      "absorbance": 1.327
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 4.216
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 3.806
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 3.8
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 2.98
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 2.974
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 2.57
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 2.153
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 2.147
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 1.743
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 1.737
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 1.321
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 0.911
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 0.905
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 0.501
+    },
+    {
+      "wavelength": 246.6,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 3.8
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 3.39
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 2.98
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 2.974
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 2.564
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 2.153
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 1.737
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 1.327
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 0.911
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 0.905
+    },
+    {
+      "wavelength": 248.8,
+      "absorbance": 0.501
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 4.216
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 3.806
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 3.396
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 3.36
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 2.57
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 2.546
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 2.172
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 2.147
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 1.743
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 1.345
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 1.321
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 0.531
+    },
+    {
+      "wavelength": 249.4,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 4.21
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.812
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.788
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.402
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.378
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.366
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 3.354
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.992
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.962
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.576
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.552
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.54
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.178
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.166
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 2.141
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 1.749
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 1.725
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 1.351
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 1.339
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 1.315
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.923
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.893
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.537
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.525
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.513
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 249.9,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 250.5,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 250.5,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 251.1,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 335.8,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 336.9,
+      "absorbance": 0.483
+    },
+    {
+      "wavelength": 336.9,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 337.5,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 337.5,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 338.0,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 422.2,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 423.3,
+      "absorbance": 0.483
+    },
+    {
+      "wavelength": 423.3,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 423.9,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 423.9,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 424.5,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 509.8,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 509.8,
+      "absorbance": 0.483
+    },
+    {
+      "wavelength": 510.3,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 510.3,
+      "absorbance": 0.477
+    },
+    {
+      "wavelength": 510.3,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 510.9,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 510.9,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 511.4,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 596.2,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 596.7,
+      "absorbance": 0.464
+    },
+    {
+      "wavelength": 596.7,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 597.3,
+      "absorbance": 0.483
+    },
+    {
+      "wavelength": 597.3,
+      "absorbance": 0.471
+    },
+    {
+      "wavelength": 597.9,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 597.9,
+      "absorbance": 0.489
+    },
+    {
+      "wavelength": 598.4,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 682.6,
+      "absorbance": 0.495
+    },
+    {
+      "wavelength": 683.7,
+      "absorbance": 0.483
+    },
+    {
+      "wavelength": 683.7,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 684.3,
+      "absorbance": 0.458
+    },
+    {
+      "wavelength": 684.3,
+      "absorbance": 4.223
+    }
+  ]
+}

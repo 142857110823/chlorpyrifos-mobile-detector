@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>农药残留检测APP - 预览</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .phone-frame {
+            width: 375px;
+            height: 812px;
+            background: #fff;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: #000;
+            border-radius: 0 0 20px 20px;
+            z-index: 100;
+        }
+
+        .app-container {
+            height: 100%;
+            overflow-y: auto;
+            background: #f5f5f5;
+        }
+
+        /* 启动页 */
+        .splash-screen {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .splash-icon {
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            font-size: 60px;
+        }
+
+        .splash-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .splash-subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* 首页 */
+        .home-screen {
+            padding: 60px 20px 100px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+            margin: -60px -20px 20px;
+            padding: 60px 20px 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .action-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 10px;
+            font-size: 24px;
+        }
+
+        .action-card.primary .action-icon {
+            background: #E8F5E9;
+            color: #4CAF50;
+        }
+
+        .action-card.secondary .action-icon {
+            background: #E3F2FD;
+            color: #2196F3;
+        }
+
+        .action-card.warning .action-icon {
+            background: #FFF3E0;
+            color: #FF9800;
+        }
+
+        .action-card.info .action-icon {
+            background: #F3E5F5;
+            color: #9C27B0;
+        }
+
+        .action-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .action-desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #999;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: #4CAF50;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        /* 检测页面 */
+        .detection-screen {
+            padding: 60px 20px 100px;
+            display: none;
+        }
+
+        .upload-area {
+            background: white;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px dashed #ddd;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #4CAF50;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .result-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .result-badge.safe {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+
+        .result-badge.warning {
+            background: #FFF3E0;
+            color: #EF6C00;
+        }
+
+        .result-badge.danger {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.safe {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #FF9800, #FFC107);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #F44336, #FF5722);
+        }
+
+        .result-detail {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* 历史页面 */
+        .history-screen {
+            padding: 60px 20px 100px;
+            display: none;
+        }
+
+        .history-item {
+            background: white;
+            border-radius: 16px;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .history-info h4 {
+            font-size: 15px;
+            margin-bottom: 5px;
+        }
+
+        .history-info p {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .history-status {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* 设置页面 */
+        .settings-screen {
+            padding: 60px 20px 100px;
+            display: none;
+        }
+
+        .settings-group {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .settings-item {
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+        }
+
+        .settings-text {
+            font-size: 15px;
+        }
+
+        .settings-value {
+            color: #999;
+            font-size: 14px;
+        }
+
+        /* 隐藏滚动条 */
+        .app-container::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="app-container">
+            <!-- 启动页 -->
+            <div class="splash-screen" id="splash" style="display: none;">
+                <div class="splash-icon">🌿</div>
+                <div class="splash-title">农药残留检测</div>
+                <div class="splash-subtitle">AI智能分析 · 守护食品安全</div>
+            </div>
+
+            <!-- 首页 -->
+            <div class="home-screen" id="home">
+                <div class="header">
+                    <h1>欢迎使用</h1>
+                    <p>智能农药残留检测系统</p>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="action-card primary" onclick="showScreen('detection')">
+                        <div class="action-icon">📷</div>
+                        <div class="action-title">光谱检测</div>
+                        <div class="action-desc">上传光谱图片</div>
+                    </div>
+                    <div class="action-card secondary">
+                        <div class="action-icon">📊</div>
+                        <div class="action-title">数据分析</div>
+                        <div class="action-desc">查看统计报告</div>
+                    </div>
+                    <div class="action-card warning">
+                        <div class="action-icon">📱</div>
+                        <div class="action-title">设备连接</div>
+                        <div class="action-desc">连接检测仪器</div>
+                    </div>
+                    <div class="action-card info">
+                        <div class="action-icon">📚</div>
+                        <div class="action-title">知识库</div>
+                        <div class="action-desc">农药残留标准</div>
+                    </div>
+                </div>
+
+                <div class="section-title">检测统计</div>
+                <div class="stats-card">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">128</div>
+                            <div class="stat-label">总检测数</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">95%</div>
+                            <div class="stat-label">合格率</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">5</div>
+                            <div class="stat-label">今日检测</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">最近检测</div>
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-title">毒死蜱检测</span>
+                        <span class="result-badge safe">合格</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill safe" style="width: 15%"></div>
+                    </div>
+                    <div class="result-detail">
+                        <span>残留量: 0.03 mg/kg</span>
+                        <span>标准: ≤0.1 mg/kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 检测页面 -->
+            <div class="detection-screen" id="detection">
+                <div class="header">
+                    <h1>光谱检测</h1>
+                    <p>上传光谱图片进行AI分析</p>
+                </div>
+
+                <div class="upload-area">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">点击上传光谱图片</div>
+                    <div class="upload-hint">支持 PNG、JPG 格式</div>
+                </div>
+
+                <div class="section-title">检测结果</div>
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-title">毒死蜱 (Chlorpyrifos)</span>
+                        <span class="result-badge safe">安全</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill safe" style="width: 12%"></div>
+                    </div>
+                    <div class="result-detail">
+                        <span>置信度: 94.5%</span>
+                        <span>含量: 0.02 mg/kg</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-title">多菌灵 (Carbendazim)</span>
+                        <span class="result-badge warning">注意</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill warning" style="width: 65%"></div>
+                    </div>
+                    <div class="result-detail">
+                        <span>置信度: 78.2%</span>
+                        <span>含量: 0.08 mg/kg</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-header">
+                        <span class="result-title">吡虫啉 (Imidacloprid)</span>
+                        <span class="result-badge safe">安全</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill safe" style="width: 8%"></div>
+                    </div>
+                    <div class="result-detail">
+                        <span>置信度: 96.1%</span>
+                        <span>含量: 0.01 mg/kg</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 历史页面 -->
+            <div class="history-screen" id="history">
+                <div class="header">
+                    <h1>检测历史</h1>
+                    <p>查看所有检测记录</p>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>光谱检测 - 样本 #128</h4>
+                        <p>2024-04-13 14:30</p>
+                    </div>
+                    <span class="history-status" style="background: #E8F5E9; color: #2E7D32;">合格</span>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>光谱检测 - 样本 #127</h4>
+                        <p>2024-04-13 11:15</p>
+                    </div>
+                    <span class="history-status" style="background: #FFF3E0; color: #EF6C00;">注意</span>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>光谱检测 - 样本 #126</h4>
+                        <p>2024-04-12 16:45</p>
+                    </div>
+                    <span class="history-status" style="background: #E8F5E9; color: #2E7D32;">合格</span>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>光谱检测 - 样本 #125</h4>
+                        <p>2024-04-12 09:20</p>
+                    </div>
+                    <span class="history-status" style="background: #E8F5E9; color: #2E7D32;">合格</span>
+                </div>
+
+                <div class="history-item">
+                    <div class="history-info">
+                        <h4>光谱检测 - 样本 #124</h4>
+                        <p>2024-04-11 15:30</p>
+                    </div>
+                    <span class="history-status" style="background: #FFEBEE; color: #C62828;">超标</span>
+                </div>
+            </div>
+
+            <!-- 设置页面 -->
+            <div class="settings-screen" id="settings">
+                <div class="header">
+                    <h1>设置</h1>
+                    <p>应用偏好设置</p>
+                </div>
+
+                <div class="section-title">通用</div>
+                <div class="settings-group">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #E3F2FD;">🔔</div>
+                            <span class="settings-text">通知提醒</span>
+                        </div>
+                        <span class="settings-value">开启</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #E8F5E9;">🌙</div>
+                            <span class="settings-text">深色模式</span>
+                        </div>
+                        <span class="settings-value">跟随系统</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #FFF3E0;">🌐</div>
+                            <span class="settings-text">语言</span>
+                        </div>
+                        <span class="settings-value">简体中文</span>
+                    </div>
+                </div>
+
+                <div class="section-title">检测设置</div>
+                <div class="settings-group">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #F3E5F5;">⚡</div>
+                            <span class="settings-text">快速检测模式</span>
+                        </div>
+                        <span class="settings-value">关闭</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #E0F2F1;">📊</div>
+                            <span class="settings-text">自动保存结果</span>
+                        </div>
+                        <span class="settings-value">开启</span>
+                    </div>
+                </div>
+
+                <div class="section-title">关于</div>
+                <div class="settings-group">
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #E8EAF6;">ℹ️</div>
+                            <span class="settings-text">版本信息</span>
+                        </div>
+                        <span class="settings-value">v1.0.0</span>
+                    </div>
+                    <div class="settings-item">
+                        <div class="settings-label">
+                            <div class="settings-icon" style="background: #E8EAF6;">📄</div>
+                            <span class="settings-text">隐私政策</span>
+                        </div>
+                        <span style="color: #ccc;">›</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部导航 -->
+            <div class="bottom-nav">
+                <div class="nav-item active" onclick="showScreen('home')">
+                    <span class="nav-icon">🏠</span>
+                    <span>首页</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('detection')">
+                    <span class="nav-icon">🔬</span>
+                    <span>检测</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('history')">
+                    <span class="nav-icon">📋</span>
+                    <span>历史</span>
+                </div>
+                <div class="nav-item" onclick="showScreen('settings')">
+                    <span class="nav-icon">⚙️</span>
+                    <span>设置</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换功能
+        function showScreen(screenName) {
+            // 隐藏所有页面
+            document.getElementById('home').style.display = 'none';
+            document.getElementById('detection').style.display = 'none';
+            document.getElementById('history').style.display = 'none';
+            document.getElementById('settings').style.display = 'none';
+
+            // 显示选中的页面
+            document.getElementById(screenName).style.display = 'block';
+
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+        }
+
+        // 启动页显示3秒后隐藏
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('splash').style.display = 'none';
+            }, 2000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+{
+  "pesticide": "种衣剂",
+  "peaks": [
+    245,
+    215,
+    275
+  ],
+  "calibration_data": [
+    {
+      "concentration": 0.1,
+      "absorbances": [
+        0.1553326989614727,
+        0.15366635176523333,
+        0.15366635176523333
+      ]
+    },
+    {
+      "concentration": 0.5,
+      "absorbances": [
+        0.7766634948073634,
+        0.7683317588261666,
+        0.7683317588261666
+      ]
+    },
+    {
+      "concentration": 1.0,
+      "absorbances": [
+        1.5533269896147268,
+        1.536663517652333,
+        1.536663517652333
+      ]
+    },
+    {
+      "concentration": 2.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    {
+      "concentration": 5.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    {
+      "concentration": 10.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    }
+  ]
+}

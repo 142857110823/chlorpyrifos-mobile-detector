@@ -1,0 +1,58 @@
+{
+  "pesticide": "扑虱灵",
+  "peaks": [
+    260,
+    230,
+    300
+  ],
+  "calibration_data": [
+    {
+      "concentration": 0.1,
+      "absorbances": [
+        0.15371666887492175,
+        0.15366634948417096,
+        0.15205031939761998
+      ]
+    },
+    {
+      "concentration": 0.5,
+      "absorbances": [
+        0.7685833443746086,
+        0.7683317474208547,
+        0.7602515969880999
+      ]
+    },
+    {
+      "concentration": 1.0,
+      "absorbances": [
+        1.5371666887492172,
+        1.5366634948417095,
+        1.5205031939761997
+      ]
+    },
+    {
+      "concentration": 2.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    {
+      "concentration": 5.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    },
+    {
+      "concentration": 10.0,
+      "absorbances": [
+        2.0,
+        2.0,
+        2.0
+      ]
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+# Flutter / Android build artifacts
+APP开发/build/
+APP开发/android/.gradle/
+APP开发/.dart_tool/
+APP开发/.flutter-plugins
+APP开发/.flutter-plugins-dependencies
+APP开发/.packages
+
+# Deep learning checkpoints
+deep_learning/checkpoints/
+
+# Large binary files
+flutter_windows_3.19.0-stable.zip
+压缩文件/
+
+# IDE / Editor
+.trae/
+.vercel-tmp/
+.idea/
+*.iml
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+nul
+
+# Logs
+logs/
+
+# Config files with secrets (Discord tokens, API keys)
+配置文件/
+文档/最终修复操作指南.md
+文档/网关连接问题修复指南.md
+文档/完整操作指南.txt
+
+# Release APK (can be rebuilt)
+APP开发/release/*.apk

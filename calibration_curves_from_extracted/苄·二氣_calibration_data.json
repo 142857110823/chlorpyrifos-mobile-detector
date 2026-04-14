@@ -1,0 +1,58 @@
+{
+  "pesticide": "苄·二氣",
+  "peaks": [
+    254,
+    220,
+    280
+  ],
+  "calibration_data": [
+    {
+      "concentration": 0.1,
+      "absorbances": [
+        0.0495,
+        0.4223,
+        0.0495
+      ]
+    },
+    {
+      "concentration": 0.5,
+      "absorbances": [
+        0.2475,
+        2.1115,
+        0.2475
+      ]
+    },
+    {
+      "concentration": 1.0,
+      "absorbances": [
+        0.495,
+        4.223,
+        0.495
+      ]
+    },
+    {
+      "concentration": 2.0,
+      "absorbances": [
+        0.99,
+        4.5,
+        0.99
+      ]
+    },
+    {
+      "concentration": 5.0,
+      "absorbances": [
+        2.475,
+        4.5,
+        2.475
+      ]
+    },
+    {
+      "concentration": 10.0,
+      "absorbances": [
+        4.5,
+        4.5,
+        4.5
+      ]
+    }
+  ]
+}

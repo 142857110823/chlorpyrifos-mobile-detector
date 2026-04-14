@@ -1,0 +1,4 @@
+# TensorFlow Lite Model Placeholder
+# This is a placeholder file for concentration_regressor.tflite
+# When the actual model is available, it will be used automatically
+# In the meantime, the app will use the rule-based engine

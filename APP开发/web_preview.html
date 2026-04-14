@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光谱农药检测系统 - APP预览</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00d4aa;
+            --primary-dark: #00b894;
+            --secondary: #0984e3;
+            --accent: #fdcb6e;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --success: #00b894;
+            --bg-dark: #0a0e1a;
+            --bg-card: #111827;
+            --bg-elevated: #1a1f2e;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.1);
+            --glow: 0 0 30px rgba(0, 212, 170, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景动画 */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(9, 132, 227, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(253, 203, 110, 0.03) 0%, transparent 60%);
+            animation: bgFloat 20s ease-in-out infinite;
+        }
+
+        @keyframes bgFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            33% { transform: translate(2%, 2%) rotate(1deg); }
+            66% { transform: translate(-1%, 1%) rotate(-1deg); }
+        }
+
+        /* 网格背景 */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 170, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 170, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 主容器 */
+        .app-container {
+            position: relative;
+            z-index: 2;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: var(--glow);
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 2px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--bg-dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--primary);
+        }
+
+        /* 主要内容区 */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        /* 手机模拟器 */
+        .phone-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .phone {
+            width: 375px;
+            height: 812px;
+            background: var(--bg-card);
+            border-radius: 50px;
+            padding: 15px;
+            box-shadow: 
+                0 50px 100px rgba(0,0,0,0.5),
+                0 0 0 1px rgba(255,255,255,0.1),
+                inset 0 0 0 2px rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        .phone-notch {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 30px;
+            background: var(--bg-dark);
+            border-radius: 20px;
+            z-index: 10;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-dark);
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* APP内容 */
+        .app-content {
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+
+        .app-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 状态栏 */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 25px;
+            padding-top: 15px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .status-time {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .status-icons {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        /* APP头部 */
+        .app-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .app-header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .app-header-icon:hover {
+            background: var(--primary);
+            color: var(--bg-dark);
+        }
+
+        /* 检测状态卡片 */
+        .status-card {
+            margin: 0 20px 20px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(9, 132, 227, 0.1));
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+        }
+
+        .status-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .status-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .indicator-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* 样品输入 */
+        .input-section {
+            margin: 0 20px 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* 图片上传区 */
+        .upload-area {
+            margin: 0 20px 20px;
+            padding: 40px 20px;
+            background: var(--bg-elevated);
+            border: 2px dashed var(--border);
+            border-radius: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(0, 212, 170, 0.05);
+        }
+
+        .upload-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .upload-text {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* 检测结果 */
+        .result-card {
+            margin: 0 20px 20px;
+            padding: 20px;
+            background: var(--bg-elevated);
+            border-radius: 20px;
+            border-left: 4px solid var(--success);
+        }
+
+        .result-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .result-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .result-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-safe {
+            background: rgba(0, 184, 148, 0.2);
+            color: var(--success);
+        }
+
+        .badge-warning {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning);
+        }
+
+        .badge-danger {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .result-value {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        /* 进度条 */
+        .progress-section {
+            margin: 0 20px 20px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 检测按钮 */
+        .detect-btn {
+            margin: 0 20px 30px;
+            padding: 18px;
+            width: calc(100% - 40px);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 16px;
+            color: var(--bg-dark);
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .detect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow);
+        }
+
+        .detect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 底部导航 */
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0 30px;
+            background: linear-gradient(to top, var(--bg-card), transparent);
+            border-top: 1px solid var(--border);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 5px 15px;
+        }
+
+        .nav-item:hover {
+            color: var(--primary);
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            font-size: 24px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+        }
+
+        /* 右侧面板 */
+        .info-panel {
+            padding: 20px;
+        }
+
+        .panel-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-item:last-child {
+            border-bottom: none;
+        }
+
+        .feature-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .feature-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .feature-content p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* 技术规格 */
+        .spec-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .spec-item {
+            background: var(--bg-elevated);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        .spec-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .spec-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 1100px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-panel {
+                display: none;
+            }
+        }
+
+        /* 动画 */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 光谱图表 */
+        .spectrum-chart {
+            margin: 0 20px 20px;
+            padding: 20px;
+            background: var(--bg-elevated);
+            border-radius: 16px;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100px;
+            position: relative;
+        }
+
+        .chart-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+        }
+
+        .chart-line svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 加载动画 */
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 历史记录 */
+        .history-list {
+            margin: 0 20px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            background: var(--bg-card);
+            border: 1px solid var(--primary);
+        }
+
+        .history-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-name {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .history-date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .history-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    <div class="grid-overlay"></div>
+    
+    <div class="app-container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">🧪</div>
+                <div>
+                    <div class="logo-text">SPECTRA</div>
+                    <div class="logo-subtitle">光谱农药检测系统</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary" onclick="switchTab('home')">
+                    <span>🏠</span> 首页
+                </button>
+                <button class="btn btn-secondary" onclick="switchTab('history')">
+                    <span>📊</span> 历史
+                </button>
+                <button class="btn btn-primary" onclick="startDetection()">
+                    <span>🔬</span> 开始检测
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <div class="phone-container">
+                <div class="phone">
+                    <div class="phone-notch"></div>
+                    <div class="phone-screen">
+                        <div class="app-content" id="appContent">
+                            <!-- 动态内容将在这里渲染 -->
+                        </div>
+                        <div class="bottom-nav">
+                            <div class="nav-item active" onclick="switchTab('home')">
+                                <span class="nav-icon">🏠</span>
+                                <span class="nav-label">首页</span>
+                            </div>
+                            <div class="nav-item" onclick="switchTab('detect')">
+                                <span class="nav-icon">🔬</span>
+                                <span class="nav-label">检测</span>
+                            </div>
+                            <div class="nav-item" onclick="switchTab('history')">
+                                <span class="nav-icon">📊</span>
+                                <span class="nav-label">历史</span>
+                            </div>
+                            <div class="nav-item" onclick="switchTab('settings')">
+                                <span class="nav-icon">⚙️</span>
+                                <span class="nav-label">设置</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <div class="panel-card">
+                    <h3 class="panel-title">
+                        <span>✨</span> 核心功能
+                    </h3>
+                    <ul class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon">🔬</div>
+                            <div class="feature-content">
+                                <h4>光谱分析</h4>
+                                <p>基于深度学习的光谱图像分析，准确识别农药残留</p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon">📱</div>
+                            <div class="feature-content">
+                                <h4>实时检测</h4>
+                                <p>支持蓝牙光谱仪连接，实现现场快速检测</p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon">🧠</div>
+                            <div class="feature-content">
+                                <h4>AI识别</h4>
+                                <p>TensorFlow Lite模型，支持7种农药类型识别</p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-content">
+                                <h4>数据管理</h4>
+                                <p>完整的历史记录和报告导出功能</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="panel-card">
+                    <h3 class="panel-title">
+                        <span>📋</span> 技术规格
+                    </h3>
+                    <div class="spec-grid">
+                        <div class="spec-item">
+                            <div class="spec-label">检测范围</div>
+                            <div class="spec-value">230-370nm</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">识别种类</div>
+                            <div class="spec-value">7+</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">准确率</div>
+                            <div class="spec-value">>95%</div>
+                        </div>
+                        <div class="spec-item">
+                            <div class="spec-label">响应时间</div>
+                            <div class="spec-value"><3s</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-card">
+                    <h3 class="panel-title">
+                        <span>🔧</span> 系统状态
+                    </h3>
+                    <div class="feature-list">
+                        <li class="feature-item">
+                            <div class="feature-icon" style="background: rgba(0, 184, 148, 0.2);">✓</div>
+                            <div class="feature-content">
+                                <h4>光谱分析服务</h4>
+                                <p style="color: var(--success);">运行正常 - 算法模式</p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon" style="background: rgba(0, 184, 148, 0.2);">✓</div>
+                            <div class="feature-content">
+                                <h4>数据存储服务</h4>
+                                <p style="color: var(--success);">运行正常 - Hive本地存储</p>
+                            </div>
+                        </li>
+                        <li class="feature-item">
+                            <div class="feature-icon" style="background: rgba(243, 156, 18, 0.2);">⚠</div>
+                            <div class="feature-content">
+                                <h4>蓝牙连接服务</h4>
+                                <p style="color: var(--warning);">等待设备连接</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let currentTab = 'home';
+        let isDetecting = false;
+        let detectionProgress = 0;
+        let sampleName = '';
+        let hasImage = false;
+
+        // 历史记录数据
+        const historyData = [
+            { id: 1, name: '样品 #2024001', date: '2024-04-14 10:23', status: 'safe', result: '未检出农药残留' },
+            { id: 2, name: '蔬菜样本A', date: '2024-04-13 16:45', status: 'warning', result: '检出低浓度吡虫啉' },
+            { id: 3, name: '水果样本B', date: '2024-04-13 09:12', status: 'safe', result: '未检出农药残留' },
+        ];
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHome();
+            updateTime();
+            setInterval(updateTime, 1000);
+        });
+
+        // 更新时间
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            const timeElements = document.querySelectorAll('.status-time');
+            timeElements.forEach(el => el.textContent = timeString);
+        }
+
+        // 切换标签
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach((item, index) => {
+                item.classList.remove('active');
+                if ((tab === 'home' && index === 0) ||
+                    (tab === 'detect' && index === 1) ||
+                    (tab === 'history' && index === 2) ||
+                    (tab === 'settings' && index === 3)) {
+                    item.classList.add('active');
+                }
+            });
+
+            // 渲染对应页面
+            switch(tab) {
+                case 'home':
+                case 'detect':
+                    renderHome();
+                    break;
+                case 'history':
+                    renderHistory();
+                    break;
+                case 'settings':
+                    renderSettings();
+                    break;
+            }
+        }
+
+        // 渲染首页/检测页
+        function renderHome() {
+            const content = document.getElementById('appContent');
+            content.innerHTML = `
+                <div class="status-bar">
+                    <span class="status-time">${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div class="status-icons">
+                        <span>📶</span>
+                        <span>📡</span>
+                        <span>🔋</span>
+                    </div>
+                </div>
+
+                <div class="app-header">
+                    <div class="app-title">毒死蜱检测</div>
+                    <div class="app-header-icon" onclick="showHelp()">❓</div>
+                </div>
+
+                <div class="status-card fade-in">
+                    <div class="status-label">系统状态</div>
+                    <div class="status-value">🟢 准备就绪</div>
+                    <div class="status-indicator">
+                        <div class="indicator-dot"></div>
+                        <span class="indicator-text">光谱分析服务正常运行</span>
+                    </div>
+                </div>
+
+                <div class="input-section fade-in">
+                    <div class="section-title">
+                        <span>📝</span> 样品信息
+                    </div>
+                    <input type="text" 
+                           class="input-field" 
+                           placeholder="请输入样品名称..."
+                           value="${sampleName}"
+                           onchange="sampleName = this.value">
+                </div>
+
+                <div class="upload-area fade-in" onclick="selectImage()" id="uploadArea">
+                    <div class="upload-icon">📷</div>
+                    <div class="upload-text">点击上传光谱图片</div>
+                    <div class="upload-hint">支持 JPG、PNG 格式</div>
+                </div>
+
+                ${hasImage ? `
+                <div class="spectrum-chart fade-in">
+                    <div class="chart-title">光谱预览</div>
+                    <div class="chart-canvas">
+                        <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#00d4aa"/>
+                                    <stop offset="100%" style="stop-color:#0984e3"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,80 Q30,70 60,75 T120,60 T180,40 T240,55 T300,30" 
+                                  stroke="url(#lineGradient)" 
+                                  stroke-width="2" 
+                                  fill="none"/>
+                            <path d="M0,80 Q30,70 60,75 T120,60 T180,40 T240,55 T300,30 L300,100 L0,100 Z" 
+                                  fill="url(#lineGradient)" 
+                                  opacity="0.1"/>
+                        </svg>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${isDetecting ? `
+                <div class="progress-section fade-in">
+                    <div class="progress-header">
+                        <span>正在分析...</span>
+                        <span>${Math.round(detectionProgress * 100)}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${detectionProgress * 100}%"></div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${detectionProgress >= 1 ? renderResult() : ''}
+
+                <button class="detect-btn fade-in" onclick="startDetection()" ${isDetecting ? 'disabled' : ''}>
+                    <span>🔬</span>
+                    ${isDetecting ? '检测中...' : (detectionProgress >= 1 ? '重新检测' : '开始检测')}
+                </button>
+            `;
+        }
+
+        // 渲染检测结果
+        function renderResult() {
+            const isSafe = Math.random() > 0.3;
+            const statusClass = isSafe ? '' : (Math.random() > 0.5 ? 'warning' : 'danger');
+            const badgeClass = isSafe ? 'badge-safe' : (Math.random() > 0.5 ? 'badge-warning' : 'badge-danger');
+            const statusText = isSafe ? '安全' : (Math.random() > 0.5 ? '警告' : '危险');
+            
+            return `
+                <div class="result-card ${statusClass} fade-in">
+                    <div class="result-header">
+                        <span class="result-title">检测结果</span>
+                        <span class="result-badge ${badgeClass}">${statusText}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">样品名称</span>
+                        <span class="result-value">${sampleName || '未命名样品'}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">检测时间</span>
+                        <span class="result-value">${new Date().toLocaleString('zh-CN')}</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">置信度</span>
+                        <span class="result-value">${(0.85 + Math.random() * 0.14).toFixed(2)}%</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">农药残留</span>
+                        <span class="result-value" style="color: ${isSafe ? 'var(--success)' : 'var(--danger)'}">
+                            ${isSafe ? '未检出' : '检出'}
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染历史页面
+        function renderHistory() {
+            const content = document.getElementById('appContent');
+            content.innerHTML = `
+                <div class="status-bar">
+                    <span class="status-time">${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div class="status-icons">
+                        <span>📶</span>
+                        <span>📡</span>
+                        <span>🔋</span>
+                    </div>
+                </div>
+
+                <div class="app-header">
+                    <div class="app-title">检测历史</div>
+                    <div class="app-header-icon" onclick="clearHistory()">🗑️</div>
+                </div>
+
+                <div class="history-list">
+                    ${historyData.map(item => `
+                        <div class="history-item" onclick="viewHistory(${item.id})">
+                            <div class="history-icon">📄</div>
+                            <div class="history-info">
+                                <div class="history-name">${item.name}</div>
+                                <div class="history-date">${item.date}</div>
+                            </div>
+                            <span class="history-status ${item.status === 'safe' ? 'badge-safe' : (item.status === 'warning' ? 'badge-warning' : 'badge-danger')}">
+                                ${item.status === 'safe' ? '安全' : (item.status === 'warning' ? '警告' : '危险')}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // 渲染设置页面
+        function renderSettings() {
+            const content = document.getElementById('appContent');
+            content.innerHTML = `
+                <div class="status-bar">
+                    <span class="status-time">${new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <div class="status-icons">
+                        <span>📶</span>
+                        <span>📡</span>
+                        <span>🔋</span>
+                    </div>
+                </div>
+
+                <div class="app-header">
+                    <div class="app-title">设置</div>
+                </div>
+
+                <div class="input-section">
+                    <div class="section-title">⚙️ 系统设置</div>
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="result-label">深色模式</span>
+                            <span class="result-value">已开启</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">自动保存</span>
+                            <span class="result-value">已开启</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">通知提醒</span>
+                            <span class="result-value">已开启</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="section-title">🔧 检测设置</div>
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="result-label">检测灵敏度</span>
+                            <span class="result-value">高</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">光谱范围</span>
+                            <span class="result-value">230-370nm</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">数据同步</span>
+                            <span class="result-value">仅WiFi</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                    <div class="section-title">📱 关于</div>
+                    <div class="result-card">
+                        <div class="result-item">
+                            <span class="result-label">版本号</span>
+                            <span class="result-value">v1.0.0</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Flutter</span>
+                            <span class="result-value">3.22.0</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 选择图片
+        function selectImage() {
+            hasImage = true;
+            renderHome();
+        }
+
+        // 开始检测
+        function startDetection() {
+            if (isDetecting) return;
+            
+            if (!sampleName) {
+                alert('请输入样品名称');
+                return;
+            }
+            
+            if (!hasImage) {
+                alert('请先上传光谱图片');
+                return;
+            }
+
+            isDetecting = true;
+            detectionProgress = 0;
+            renderHome();
+
+            // 模拟检测进度
+            const interval = setInterval(() => {
+                detectionProgress += 0.1;
+                renderHome();
+                
+                if (detectionProgress >= 1) {
+                    clearInterval(interval);
+                    isDetecting = false;
+                    renderHome();
+                }
+            }, 300);
+        }
+
+        // 显示帮助
+        function showHelp() {
+            alert('使用说明：\n\n1. 输入样品名称\n2. 上传光谱图片\n3. 点击开始检测\n4. 查看检测结果');
+        }
+
+        // 查看历史详情
+        function viewHistory(id) {
+            const item = historyData.find(h => h.id === id);
+            if (item) {
+                alert(`样品：${item.name}\n时间：${item.date}\n结果：${item.result}`);
+            }
+        }
+
+        // 清空历史
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？')) {
+                historyData.length = 0;
+                renderHistory();
+            }
+        }
+    </script>
+</body>
+</html>
