@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-毒死蜱农药残留智能检测系统 - Streamlit Web 完整版
+农药残留智能检测系统v1.0 - Streamlit Web 完整版
 移植自 Flutter APP 的全部核心功能模块
 """
 import streamlit as st
@@ -11,21 +11,25 @@ import plotly.express as px
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 from typing import List, Dict, Optional, Tuple
-import datetime, uuid, json, math, io, struct, base64, time
+import datetime, uuid, json, math, io, struct, base64, time, os, pathlib
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+import cv2
+from scipy.interpolate import interp1d
+from scipy.signal import savgol_filter as sg_filter_scipy
+from scipy.spatial.distance import cosine as cosine_distance
 
 # ======================================================================
 # S1 - 常量与配置
 # ======================================================================
 
 PESTICIDE_CLASSES = [
-    'none', 'chlorpyrifos', 'dimethoate', 'omethoate', 'phoxim',
+    'none', 'pest_a', 'dimethoate', 'omethoate', 'phoxim',
     'malathion', 'carbofuran', 'carbendazim', 'imidacloprid',
     'acetamiprid', 'cypermethrin',
 ]
 
 PESTICIDE_CN = {
-    'none': '无农药', 'chlorpyrifos': '毒死蜱', 'dimethoate': '乐果',
+    'none': '无农药', 'pest_a': '有机磷A', 'dimethoate': '乐果',
     'omethoate': '氧化乐果', 'phoxim': '辛硫磷', 'malathion': '马拉硫磷',
     'carbofuran': '克百威', 'carbendazim': '多菌灵', 'imidacloprid': '吡虫啉',
     'acetamiprid': '啶虫脒', 'cypermethrin': '氯氰菊酯',
@@ -33,7 +37,7 @@ PESTICIDE_CN = {
 
 PESTICIDE_PEAKS = {
     'none': [],
-    'chlorpyrifos': [(450, 0.8), (520, 0.6), (680, 0.4)],
+    'pest_a': [(450, 0.8), (520, 0.6), (680, 0.4)],
     'dimethoate': [(380, 0.7), (480, 0.9), (620, 0.5)],
     'omethoate': [(400, 0.85), (510, 0.7), (650, 0.45)],
     'phoxim': [(420, 0.75), (540, 0.8), (700, 0.5)],
@@ -46,14 +50,14 @@ PESTICIDE_PEAKS = {
 }
 
 MRL_LIMITS = {
-    'chlorpyrifos': 0.1, 'dimethoate': 1.0, 'omethoate': 0.02,
+    'pest_a': 0.1, 'dimethoate': 1.0, 'omethoate': 0.02,
     'phoxim': 0.05, 'malathion': 0.5, 'carbofuran': 0.02,
     'carbendazim': 0.5, 'imidacloprid': 0.5, 'acetamiprid': 0.3,
     'cypermethrin': 0.5,
 }
 
 PESTICIDE_TYPES = {
-    'chlorpyrifos': '有机磷', 'dimethoate': '有机磷', 'omethoate': '有机磷',
+    'pest_a': '有机磷', 'dimethoate': '有机磷', 'omethoate': '有机磷',
     'phoxim': '有机磷', 'malathion': '有机磷', 'carbofuran': '氨基甲酸酯',
     'carbendazim': '苯并咪唑', 'imidacloprid': '新烟碱', 'acetamiprid': '新烟碱',
     'cypermethrin': '拟除虫菊酯',
@@ -975,7 +979,7 @@ def generate_pdf_report(result: DetectionResult) -> bytes:
     pdf.cell(0, 15, t('农药残留检测报告', 'Pesticide Detection Report'), ln=True, align='C')
     pdf.set_font(font_name, size=12)
     pdf.ln(10)
-    pdf.cell(0, 8, t('毒死蜱农药残留智能检测系统', 'Chlorpyrifos Detection System'), ln=True, align='C')
+    pdf.cell(0, 8, t('农药残留智能检测系统v1.0', 'Pesticide Detection System'), ln=True, align='C')
     pdf.ln(20)
     pdf.set_font(font_name, size=11)
     info = [
@@ -1245,7 +1249,7 @@ def import_history_json(content: str):
 # ======================================================================
 
 def main():
-    st.set_page_config(page_title='毒死蜱农药残留智能检测系统', page_icon='🔬', layout='wide')
+    st.set_page_config(page_title='农药残留智能检测系统v1.0', page_icon='🔬', layout='wide')
     init_session_state()
 
     # CSS
@@ -1302,7 +1306,7 @@ def main():
 
 def page_home():
     st.title('🏠 首页仪表板')
-    st.caption('毒死蜱农药残留智能检测系统 | 基于近红外光谱AI分析')
+    st.caption('农药残留智能检测系统v1.0 | 基于近红外光谱AI分析')
     hist = get_history()
     total = len(hist)
     if total > 0:
@@ -1346,6 +1350,213 @@ def page_home():
             st.rerun()
 
 
+# ======================================================================
+# S_IMG - 光谱图像识别引擎 (对齐Flutter端 SpectralAnalysisService)
+# ======================================================================
+
+_STANDARD_LIBRARY_CACHE = None
+_STANDARD_LIBRARY_MTIME = 0
+
+def _load_standard_library():
+    """加载标准农药UV-Vis光谱库（自动检测文件更新）"""
+    global _STANDARD_LIBRARY_CACHE, _STANDARD_LIBRARY_MTIME
+    lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'standard_spectra.json')
+    if not os.path.exists(lib_path):
+        return []
+    current_mtime = os.path.getmtime(lib_path)
+    if _STANDARD_LIBRARY_CACHE is not None and current_mtime == _STANDARD_LIBRARY_MTIME:
+        return _STANDARD_LIBRARY_CACHE
+    with open(lib_path, 'r', encoding='utf-8') as f:
+        _STANDARD_LIBRARY_CACHE = json.load(f)
+    _STANDARD_LIBRARY_MTIME = current_mtime
+    return _STANDARD_LIBRARY_CACHE
+
+
+def _pearson_correlation(x, y):
+    """皮尔逊相关系数"""
+    x, y = np.array(x, dtype=float), np.array(y, dtype=float)
+    n = len(x)
+    if n == 0:
+        return 0.0
+    sx, sy = x.sum(), y.sum()
+    sxy = (x * y).sum()
+    sx2, sy2 = (x * x).sum(), (y * y).sum()
+    num = n * sxy - sx * sy
+    den = math.sqrt(max(0, (n * sx2 - sx * sx) * (n * sy2 - sy * sy)))
+    return num / den if den > 0 else 0.0
+
+
+def _cosine_similarity(x, y):
+    """余弦相似度"""
+    x, y = np.array(x, dtype=float), np.array(y, dtype=float)
+    dot = np.dot(x, y)
+    nx, ny = np.linalg.norm(x), np.linalg.norm(y)
+    return dot / (nx * ny) if nx > 0 and ny > 0 else 0.0
+
+
+def _euclidean_similarity(x, y):
+    """归一化欧氏距离相似度 (0-1, 1=完全一致)"""
+    x, y = np.array(x, dtype=float), np.array(y, dtype=float)
+    d = np.linalg.norm(x - y)
+    return 1.0 / (1.0 + d)
+
+
+def img_extract_spectrum_from_image(image_bytes):
+    """
+    从光谱图像中提取吸收光谱曲线 (v2: 坐标轴定位 + 饱和色优先)
+    返回: (wavelengths_501, absorbances_501) 或 (None, None)
+    """
+    arr = np.frombuffer(image_bytes, dtype=np.uint8)
+    img_bgr = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+    if img_bgr is None:
+        return None, None
+    h, w = img_bgr.shape[:2]
+    hsv = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2HSV)
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+
+    # ---- 1. 坐标轴定位: 形态学长线检测 ----
+    _, dark_mask = cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
+    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (w // 4, 1))
+    h_lines = cv2.morphologyEx(dark_mask, cv2.MORPH_OPEN, h_kernel)
+    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, h // 4))
+    v_lines = cv2.morphologyEx(dark_mask, cv2.MORPH_OPEN, v_kernel)
+
+    h_proj = np.sum(h_lines, axis=1)
+    h_positions = np.where(h_proj > w * 0.1)[0]
+    v_proj = np.sum(v_lines, axis=0)
+    v_positions = np.where(v_proj > h * 0.1)[0]
+
+    if len(h_positions) > 0 and len(v_positions) > 0:
+        x_axis_y = int(h_positions[-1])
+        y_axis_x = int(v_positions[0])
+        h_row = h_lines[x_axis_y, :]
+        x_right = np.where(h_row > 0)[0]
+        plot_x1 = int(x_right[-1]) if len(x_right) > 0 else int(w * 0.92)
+        v_col = v_lines[:, y_axis_x]
+        y_top = np.where(v_col > 0)[0]
+        plot_y0 = int(y_top[0]) if len(y_top) > 0 else int(h * 0.05)
+        plot_x0 = y_axis_x
+        plot_y1 = x_axis_y
+    else:
+        plot_x0, plot_y0 = int(w * 0.12), int(h * 0.06)
+        plot_x1, plot_y1 = int(w * 0.94), int(h * 0.87)
+
+    # ---- 2. 饱和色提取 (排除黑色文字/坐标轴) ----
+    s_ch = hsv[:, :, 1]
+    v_ch = hsv[:, :, 2]
+    colored_mask = ((s_ch > 40) & (v_ch > 60) & (v_ch < 250)).astype(np.uint8) * 255
+
+    region_mask = np.zeros_like(colored_mask)
+    margin = 3
+    py0 = min(plot_y0 + margin, plot_y1)
+    py1 = max(plot_y1 - margin, py0 + 1)
+    px0 = min(plot_x0 + margin, plot_x1)
+    px1 = max(plot_x1 - margin, px0 + 1)
+    region_mask[py0:py1, px0:px1] = 255
+    colored_mask = cv2.bitwise_and(colored_mask, region_mask)
+
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    colored_mask = cv2.morphologyEx(colored_mask, cv2.MORPH_OPEN, kernel)
+
+    if cv2.countNonZero(colored_mask) < 50:
+        return None, None
+
+    # ---- 3. 逐列扫描提取曲线 ----
+    roi = colored_mask[plot_y0:plot_y1, plot_x0:plot_x1]
+    roi_h, roi_w = roi.shape
+    if roi_h < 5 or roi_w < 10:
+        return None, None
+
+    curve_x, curve_y = [], []
+    for x in range(roi_w):
+        col = roi[:, x]
+        ys = np.where(col > 0)[0]
+        if len(ys) > 0:
+            diffs = np.diff(ys)
+            gaps = np.where(diffs > 5)[0]
+            if len(gaps) > 0:
+                curve_y.append(float(np.mean(ys[:gaps[0] + 1])))
+            else:
+                curve_y.append(float(np.mean(ys)))
+            curve_x.append(x)
+
+    if len(curve_x) < 30:
+        return None, None
+
+    # ---- 4. 像素→物理坐标映射 ----
+    curve_x = np.array(curve_x, dtype=float)
+    curve_y = np.array(curve_y, dtype=float)
+    wl_raw = 200.0 + (curve_x / roi_w) * 500.0
+    abs_raw = 4.5 * (1.0 - curve_y / roi_h)
+
+    # ---- 5. 线性插值到均匀间隔 (1nm, 501点) ----
+    try:
+        unique_wl, indices = np.unique(wl_raw.astype(int), return_index=True)
+        f_interp = interp1d(wl_raw[indices], abs_raw[indices],
+                            kind='linear', bounds_error=False, fill_value=0.0)
+        wl_uniform = np.arange(200, 701, dtype=float)
+        abs_uniform = f_interp(wl_uniform)
+        abs_uniform = np.clip(abs_uniform, 0, 4.5)
+    except Exception:
+        return None, None
+
+    # ---- 6. SG平滑 ----
+    win = min(15, len(abs_uniform) - 1)
+    if win % 2 == 0:
+        win -= 1
+    if win >= 5:
+        abs_uniform = sg_filter_scipy(abs_uniform, win, 3)
+        abs_uniform = np.clip(abs_uniform, 0, 4.5)
+
+    return wl_uniform, abs_uniform
+
+
+def img_match_pesticide(spectrum_501):
+    """
+    将提取的光谱与标准库比对, 返回Top匹配结果列表
+    对齐Flutter端 SpectralAnalysisService.recognizePesticide
+    """
+    library = _load_standard_library()
+    if not library:
+        return []
+    results = []
+    for entry in library:
+        std_abs = np.array(entry['absorbances'], dtype=float)
+        if len(std_abs) != 501:
+            continue
+        pearson = _pearson_correlation(spectrum_501, std_abs)
+        cosine = _cosine_similarity(spectrum_501, std_abs)
+        euclidean = _euclidean_similarity(spectrum_501, std_abs)
+        # 综合评分: 皮尔逊70% + 余弦20% + 欧氏10%
+        score = max(0, pearson) * 0.7 + max(0, cosine) * 0.2 + euclidean * 0.1
+        results.append({
+            'name': entry['name'],
+            'key': entry.get('key', ''),
+            'cas': entry.get('cas', ''),
+            'type': entry.get('type', ''),
+            'pearson': round(pearson, 4),
+            'cosine': round(cosine, 4),
+            'euclidean': round(euclidean, 4),
+            'score': round(score, 4),
+            'peaks': entry.get('peaks', []),
+        })
+    results.sort(key=lambda r: r['score'], reverse=True)
+    return results
+
+
+def img_estimate_concentration(spectrum_501, pesticide_name):
+    """基于吸光度估算浓度 (对齐Flutter端)"""
+    library = _load_standard_library()
+    for entry in library:
+        if entry['name'] == pesticide_name:
+            std_abs = np.array(entry['absorbances'], dtype=float)
+            max_sample = float(np.max(spectrum_501))
+            max_std = float(np.max(std_abs))
+            if max_std > 0:
+                return max(0.0, min(1.0, max_sample / max_std))
+    return 0.0
+
+
 # ---------- Page: Detection ----------
 
 def page_detection():
@@ -1364,8 +1575,9 @@ def page_detection():
 
     # Step 2: Data source
     st.subheader('Step 2: 光谱数据来源')
-    data_mode = st.radio('选择数据来源', ['文件导入', '手动输入'], horizontal=True)
+    data_mode = st.radio('选择数据来源', ['文件导入', '手动输入', '光谱图像识别'], horizontal=True)
     wavelengths = raw_intensities = None
+    img_recognition_results = None  # 图像识别匹配结果
 
     if data_mode == '文件导入':
         uploaded = st.file_uploader('上传光谱文件', type=['csv', 'txt', 'json', 'dx', 'jdx', 'jcamp'])
@@ -1385,6 +1597,98 @@ def page_detection():
                 st.success(f'解析成功: {len(wavelengths)} 个数据点')
             except Exception as e:
                 st.error(f'数据解析失败: {e}')
+
+    elif data_mode == '光谱图像识别':
+        st.info('📷 上传吸收光谱图像（UV-Vis图谱截图或照片），系统将自动提取光谱曲线并匹配农药种类。')
+        img_file = st.file_uploader('上传光谱图像', type=['png', 'jpg', 'jpeg', 'bmp', 'tiff'])
+        if img_file is not None:
+            img_bytes = img_file.read()
+            # 显示上传的图像
+            col_img, col_info = st.columns([2, 1])
+            with col_img:
+                st.image(img_bytes, caption='上传的光谱图像', use_container_width=True)
+            with col_info:
+                st.markdown(f"**文件名:** {img_file.name}")
+                st.markdown(f"**大小:** {len(img_bytes) / 1024:.1f} KB")
+
+            # 提取光谱
+            with st.spinner('正在提取光谱曲线...'):
+                wl_501, abs_501 = img_extract_spectrum_from_image(img_bytes)
+
+            if wl_501 is not None and abs_501 is not None:
+                wavelengths = wl_501
+                raw_intensities = abs_501
+                st.success(f'光谱提取成功: {len(wavelengths)} 个数据点, 波长范围 200-700 nm')
+
+                # 与标准库匹配
+                with st.spinner('正在与标准光谱库比对...'):
+                    match_results = img_match_pesticide(abs_501)
+                    img_recognition_results = match_results
+
+                # 显示匹配结果
+                if match_results:
+                    st.subheader('🎯 光谱匹配结果 (Top-5)')
+                    top_n = match_results[:5]
+                    # 匹配结果表格
+                    match_table = []
+                    for i, mr in enumerate(top_n):
+                        conc = img_estimate_concentration(abs_501, mr['name'])
+                        match_table.append({
+                            '排名': i + 1,
+                            '农药名称': mr['name'],
+                            '类型': mr.get('type', ''),
+                            'CAS号': mr.get('cas', ''),
+                            '综合评分': f"{mr['score']:.4f}",
+                            '皮尔逊': f"{mr['pearson']:.4f}",
+                            '余弦': f"{mr['cosine']:.4f}",
+                            '欧氏': f"{mr['euclidean']:.4f}",
+                            '估算浓度': f"{conc:.4f}",
+                        })
+                    st.dataframe(pd.DataFrame(match_table), use_container_width=True, hide_index=True)
+
+                    # 最佳匹配指标卡片
+                    best = top_n[0]
+                    bc1, bc2, bc3 = st.columns(3)
+                    bc1.metric('最佳匹配', best['name'])
+                    bc2.metric('综合评分', f"{best['score']:.4f}")
+                    bc3.metric('皮尔逊相关', f"{best['pearson']:.4f}")
+
+                    # 提取光谱 vs 标准光谱对比图
+                    library = _load_standard_library()
+                    best_std = None
+                    for entry in library:
+                        if entry['name'] == best['name']:
+                            best_std = entry
+                            break
+                    fig_cmp = go.Figure()
+                    fig_cmp.add_trace(go.Scatter(
+                        x=list(range(200, 701)), y=abs_501.tolist(),
+                        mode='lines', name='提取光谱',
+                        line=dict(color='#1565C0', width=2)))
+                    if best_std:
+                        fig_cmp.add_trace(go.Scatter(
+                            x=list(range(200, 701)),
+                            y=best_std['absorbances'],
+                            mode='lines', name=f"标准: {best['name']}",
+                            line=dict(color='#FF7043', width=2, dash='dash')))
+                    fig_cmp.update_layout(
+                        title='提取光谱 vs 标准光谱对比',
+                        xaxis_title='波长 (nm)', yaxis_title='吸光度',
+                        height=380, margin=dict(l=40, r=20, t=40, b=40),
+                        legend=dict(orientation='h', yanchor='bottom', y=1.02))
+                    st.plotly_chart(fig_cmp, use_container_width=True)
+
+                    # 判定阈值提示
+                    if best['score'] >= 0.85:
+                        st.success(f"✅ 高置信度匹配: **{best['name']}** (评分 {best['score']:.4f} >= 0.85)")
+                    elif best['score'] >= 0.60:
+                        st.warning(f"⚠️ 中等置信度匹配: **{best['name']}** (评分 {best['score']:.4f}), 建议结合其他方法确认")
+                    else:
+                        st.error(f"❌ 低置信度: 最高评分仅 {best['score']:.4f}, 可能不在标准库中或图像质量不足")
+                else:
+                    st.warning('标准光谱库为空或未加载，无法进行匹配。')
+            else:
+                st.error('❌ 无法从图像中提取光谱曲线。请确保上传的是清晰的UV-Vis吸收光谱图。')
 
     # Step 3: Preprocessing config
     if wavelengths is not None:
@@ -1860,7 +2164,7 @@ def page_settings():
     st.divider()
     st.subheader('关于系统')
     st.markdown("""
-**毒死蜱(Chlorpyrifos)农药残留智能检测系统** v2.0
+**农药残留智能检测系统** v1.0
 
 **核心功能：**
 - 🔬 基于AI的多种农药残留检测（11种农药）
@@ -1876,7 +2180,7 @@ def page_settings():
 **参考标准：** GB 2763《食品安全国家标准 食品中农药最大残留限量》
 
 ---
-*本系统为大学生创新训练项目成果，检测结果仅供参考。*
+*检测结果仅供参考，不作为法律依据。*
     """)
 
 
